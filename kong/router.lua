@@ -3,6 +3,7 @@ local utils         = require "kong.tools.utils"
 local px            = require "resty.mediador.proxy"
 local bit           = require "bit"
 
+
 local hostname_type = utils.hostname_type
 local subsystem     = ngx.config.subsystem
 local get_method    = ngx.req.get_method
@@ -172,13 +173,13 @@ local function marshall_route(r)
     preserve_host  = route.preserve_host == true,
     match_rules    = 0x00,
     match_weight   = 0,
+    headers        = {},
     uris           = {},
     methods        = {},
     sources        = {},
     destinations   = {},
     snis           = {},
     upstream_url_t = {},
-    headers        = {},
   }
 
 
@@ -190,39 +191,41 @@ local function marshall_route(r)
       return nil, "headers field must be a table"
     end
 
-    route_t.match_rules = bor(route_t.match_rules, MATCH_RULES.HEADERS)
-    route_t.match_weight = route_t.match_weight + 1
+    if next(headers) ~= nil then
+      route_t.match_rules = bor(route_t.match_rules, MATCH_RULES.HEADERS)
+      route_t.match_weight = route_t.match_weight + 1
 
-    for header_k, header_v_arr in pairs(headers) do
-      if type(header_v_arr) ~= "table" then
-        return nil, "headers values must be a table"
-      end
-
-      local key = lower(header_k)
-      local header_t = {
-        key = key,
-        values = {},
-      }
-
-      for i, header_v in ipairs(header_v_arr) do
-        local header_value = {
-          value = header_v,
-          key_value = key .. ":" ..header_v
-        }
-
-        if key == "host" and find(header_v, "*", nil, true) then
-          -- wildcard host matching
-          local wildcard_host_regex = header_v:gsub("%.", "\\.")
-                                                :gsub("%*", ".+") .. "$"
-
-          header_value.wildcard = true
-          header_value.regex = wildcard_host_regex
+      for header_k, header_v_arr in pairs(headers) do
+        if type(header_v_arr) ~= "table" then
+          return nil, "headers values must be a table"
         end
 
-        insert(header_t.values, header_value)
-      end
+        local key = lower(header_k)
+        local header_t = {
+          key = key,
+          values = {},
+        }
 
-      insert(route_t.headers, header_t)
+        for i, header_v in ipairs(header_v_arr) do
+          local header_value = {
+            value = header_v,
+            key_value = key .. ":" ..header_v
+          }
+
+          if key == "host" and find(header_v, "*", nil, true) then
+            -- wildcard host matching
+            local wildcard_host_regex = header_v:gsub("%.", "\\.")
+                                                  :gsub("%*", ".+") .. "$"
+
+            header_value.wildcard = true
+            header_value.regex = wildcard_host_regex
+          end
+
+          insert(header_t.values, header_value)
+        end
+
+        insert(route_t.headers, header_t)
+      end
     end
   end
 
@@ -575,7 +578,7 @@ end
 do
   local matchers = {
     [MATCH_RULES.HEADERS] = function(route_t, ctx)
-      ctx.matches.headers = {}
+      local header_matches = {}
 
       for i = 1, #route_t.headers do
         local header_t = route_t.headers[i]
@@ -583,19 +586,21 @@ do
         for j = 1, #header_t.values do
           local header_value = header_t.values[j]
 
-          if ctx.headers[header_value.key_value] or
+          if ctx.req_headers[header_value.key_value] or
             (ctx.hits.host and header_t.key == "host" and
             ctx.hits.host == header_value.value) then
-            ctx.matches.headers[header_t.key] = header_value.value
+              header_matches[header_t.key] = header_value.value
             break
           end
         end
 
         -- eject on first key that does not have a match
-        if not ctx.matches.headers[header_t.key] then
+        if not header_matches[header_t.key] then
           return
         end
       end
+
+      ctx.matches.headers = header_matches
 
       return true
     end,
@@ -785,8 +790,8 @@ end
 do
   local reducers = {
     [MATCH_RULES.HEADERS] = function(category, ctx)
-      for i = 1, #ctx.headers do
-        local routes = category.routes_by_headers[ctx.headers[i]]
+      for i = 1, #ctx.req_headers do
+        local routes = category.routes_by_headers[ctx.req_headers[i]]
         if routes then
           return routes
         end
@@ -1012,7 +1017,7 @@ function _M.new(routes)
   end
 
 
-  local function process_req_headers(header_acc, header_k, header_v)
+  local function reduce_req_headers(header_acc, header_k, header_v)
     local header_kv, cache_key
 
     if header_k == "host" then
@@ -1037,8 +1042,8 @@ function _M.new(routes)
     header_acc.cache_key = header_acc.cache_key .. ":" .. cache_key .. ":"
 
     if plain_indexes.headers[header_kv] then
-      ctx.headers[header_kv] = true
-      insert(ctx.headers, header_kv)
+      ctx.req_headers[header_kv] = true
+      insert(ctx.req_headers, header_kv)
 
     elseif header_k == "host" then
       header_acc.check_wildcard_hosts = true
@@ -1056,6 +1061,9 @@ function _M.new(routes)
     if req_uri and type(req_uri) ~= "string" then
       error("uri must be a string", 2)
     end
+    if req_headers and type(req_headers) ~= "table" then
+      error("req_headers must be a table", 2)
+    end
     if src_ip and type(src_ip) ~= "string" then
       error("src_ip must be a string", 2)
     end
@@ -1071,52 +1079,60 @@ function _M.new(routes)
     if sni and type(sni) ~= "string" then
       error("sni must be a string", 2)
     end
-    if req_headers and type(req_headers) ~= "table" then
-      error("req_headers must be a table", 2)
-    end
 
     req_method = req_method or ""
     req_uri = req_uri or ""
 
     ctx.req_method     = req_method
     ctx.req_uri        = req_uri
+    ctx.req_headers    = {}
     ctx.src_ip         = src_ip or ""
     ctx.src_port       = src_port or ""
     ctx.dst_ip         = dst_ip or ""
     ctx.dst_port       = dst_port or ""
     ctx.sni            = sni or ""
-    ctx.headers        = {}
 
+    -- process incoming request headers
+    --
+    -- generate header cache key
+    --
+    -- generate intersection of known header
+    -- key-value pairs defined in routes
+    -- and request header key-value pairs
+    --
+    -- populates ctx.req_headers
+    --
+    -- done before cache lookup so that we can
+    -- get a potential hit on incoming headers
     local header_acc = {
       cache_key = "",
       raw_req_host = "",
       check_wildcard_hosts = false,
     }
 
-    -- generate intersection of known headers and those
-    -- present in the request
-
     if req_headers then
       for _, header_k in ipairs(header_k_list) do
-        if req_headers[header_k] then
+        local header_v = req_headers[header_k]
+        if header_v then
           -- multiple header values
-          if type(req_headers[header_k]) == "table" then
-            for _, header_v in ipairs(req_headers[header_k]) do
-              process_req_headers(header_acc, header_k, header_v)
+          if type(header_v) == "table" then
+            for i = 1, #header_v do
+              reduce_req_headers(header_acc, header_k, header_v[i])
             end
+
           else
-            process_req_headers(header_acc, header_k, req_headers[header_k])
+            reduce_req_headers(header_acc, header_k, header_v)
           end
         end
       end
     end
 
+    -- cache lookup
+
     local cache_key = req_method .. ":" .. req_uri ..
       ":" .. ctx.src_ip .. ":" .. ctx.src_port ..
       ":" .. ctx.dst_ip .. ":" .. ctx.dst_port ..
       ":" .. ctx.sni .. ":" .. header_acc.cache_key
-
-    -- cache lookup
 
     do
       local match_t = cache:get(cache_key)
@@ -1140,7 +1156,7 @@ function _M.new(routes)
 
     -- header match
 
-    if #ctx.headers > 0 then
+    if #ctx.req_headers > 0 then
       req_category = bor(req_category, MATCH_RULES.HEADERS)
     end
 
