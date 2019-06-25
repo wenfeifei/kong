@@ -42,7 +42,8 @@ describe("kong config", function()
         _ignore:
         - foo: bar
         routes:
-          - hosts: ['foo.test']
+          - headers:
+              host: ['foo.test']
         plugins:
           - name: key-auth
             _comment: my comment
@@ -55,7 +56,8 @@ describe("kong config", function()
         host: example.test
         port: 3000
         routes:
-          - hosts: ['bar.test']
+          - headers:
+              hosts: ['bar.test']
         plugins:
         - name: basic-auth
         - name: tcp-log
@@ -118,7 +120,8 @@ describe("kong config", function()
         _ignore:
         - foo: bar
         routes:
-          - hosts: ['foo.test']
+          - headers:
+              host: ['foo.test']
         plugins:
           - name: key-auth
             _comment: my comment
@@ -131,7 +134,8 @@ describe("kong config", function()
         host: example.test
         port: 3000
         routes:
-          - hosts: ['bar.test']
+          - headers:
+              host: ['bar.test']
         plugins:
         - name: basic-auth
         - name: tcp-log
@@ -158,7 +162,8 @@ describe("kong config", function()
         url: http://example.com
         routes:
           - name: r1
-            hosts: ['foo.test']
+            headers:
+              host: ['foo.test']
         plugins:
         - name: basic-auth
         - name: tcp-log
@@ -169,7 +174,8 @@ describe("kong config", function()
         url: https://example.org
         routes:
           - name: r2
-            hosts: ['bar.test']
+            headers:
+              host: ['bar.test']
         plugins:
         - name: basic-auth
         - name: tcp-log
@@ -261,11 +267,13 @@ describe("kong config", function()
       - name: foo
         url: https://example.com
         routes:
-          - hosts: ['foo.test']
+          - headers:
+              host: ['foo.test']
       - name: bar
         url: https://example.com
         routes:
-          - hosts: ['bar.test']
+          - headers:
+              host: ['bar.test']
     ]])
 
     assert(helpers.start_kong({
