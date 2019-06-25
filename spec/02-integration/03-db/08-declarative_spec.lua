@@ -134,7 +134,7 @@ for _, strategy in helpers.each_strategy() do
 
         local route = assert(db.routes:select_by_name("bar"))
         assert.equals(route_def.id, route.id)
-        assert.equals("example.com", route.hosts[1])
+        assert.equals("example.com", route.headers.host[1])
         assert.same({ "http", "https" }, route.protocols)
         assert.equals(service_def.id, route.service.id)
 
