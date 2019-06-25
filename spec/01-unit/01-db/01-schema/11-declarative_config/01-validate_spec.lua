@@ -384,8 +384,8 @@ describe("declarative config: validate", function()
               routes:
                 - paths:
                   - /path
-                - hosts:
-                  - example.com
+                - headers:
+                    host: ["example.com"]
                 - methods: ["GET", "POST"]
             - name: bar
               host: example.test
@@ -393,8 +393,8 @@ describe("declarative config: validate", function()
               routes:
                 - paths:
                   - /path
-                  hosts:
-                  - example.com
+                - headers:
+                    host: ["example.com"]
                   methods: ["GET", "POST"]
           ]]))
           assert(DeclarativeConfig:validate(config))
@@ -416,7 +416,7 @@ describe("declarative config: validate", function()
                 ["routes"] = {
                   {
                     ["@entity"] = {
-                      "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                      "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
                     }
                   }
                 }
