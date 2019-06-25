@@ -245,8 +245,9 @@ describe("kong start/stop #" .. strategy, function()
             url: http://127.0.0.1:15555
             routes:
             - name: example-route
-              hosts:
-              - example.test
+              headers:
+                host:
+                  - example.test
         ]]
 
         local proxy_client
