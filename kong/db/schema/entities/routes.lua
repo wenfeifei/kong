@@ -71,6 +71,7 @@ return {
                             },
                           },
                           values = { type = "array",
+                                     required = true,
                                      elements = { type = "string" },
                                    },
                           custom_validator = validate_host_with_wildcards,

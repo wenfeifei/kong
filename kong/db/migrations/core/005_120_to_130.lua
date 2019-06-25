@@ -23,7 +23,7 @@ return {
     up = [[
       ALTER TABLE upstreams ADD algorithm text;
 
-      ALTER TABLE routes ADD headers text;
+      ALTER TABLE routes ADD headers map<text,frozen<set<text>>>;
     ]],
   },
 }
