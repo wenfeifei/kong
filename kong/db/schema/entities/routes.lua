@@ -1,7 +1,7 @@
 local typedefs = require "kong.db.schema.typedefs"
 
 
-local function validate_headers(headers)
+local function validate_host_with_wildcards(headers)
   if headers.host then
     local errors = {}
     for i = 1, #headers.host do
@@ -72,7 +72,7 @@ return {
                           values = { type = "array",
                                      elements = { type = "string" },
                                    },
-                          custom_validator = validate_headers,
+                          custom_validator = validate_host_with_wildcards,
                        }, },
     { paths          = { type = "array",
                          elements = typedefs.path {
