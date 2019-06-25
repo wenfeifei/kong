@@ -67,7 +67,7 @@ for _, strategy in helpers.each_strategy() do
             })
             local body = assert.res_status(201, res)
             local json = cjson.decode(body)
-            assert.same({ "my.route.com" }, json.hosts)
+            assert.same({ host = { "my.route.com" } }, json.headers)
             assert.is_number(json.created_at)
             assert.is_number(json.regex_priority)
             assert.is_string(json.id)
@@ -94,7 +94,7 @@ for _, strategy in helpers.each_strategy() do
             })
             local body = assert.res_status(201, res)
             local json = cjson.decode(body)
-            assert.same({ "my.route.com" }, json.hosts)
+            assert.same({ host = { "my.route.com" } }, json.headers)
             assert.is_number(json.created_at)
             assert.is_number(json.regex_priority)
             assert.is_string(json.id)
@@ -132,7 +132,7 @@ for _, strategy in helpers.each_strategy() do
 
             local body = assert.res_status(201, res)
             local json = cjson.decode(body)
-            assert.same({ "foo.api.com", "bar.api.com" }, json.hosts)
+            assert.same({ host = { "foo.api.com", "bar.api.com" } }, json.headers)
             assert.same({ "/foo","/bar" }, json.paths)
             assert.same({ "GET", "POST", "PATCH" }, json.methods)
             assert.same(s.id, json.service.id)
@@ -165,7 +165,7 @@ for _, strategy in helpers.each_strategy() do
 
             local body = assert.res_status(201, res)
             local json = cjson.decode(body)
-            assert.same({ "foo.api.com", "bar.api.com" }, json.hosts)
+            assert.same({ host = { "foo.api.com", "bar.api.com" } }, json.headers)
             assert.same({ "/foo","/bar" }, json.paths)
             assert.same({ "GET", "POST", "PATCH" }, json.methods)
             assert.same(s.id, json.service.id)
@@ -200,11 +200,11 @@ for _, strategy in helpers.each_strategy() do
                 name    = "schema violation",
                 message = unindent([[
                   schema violation
-                  (must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http')
+                  (must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http')
                 ]], true, true),
                 fields  = {
                   ["@entity"] = {
-                    "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                    "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
                   }
                 }
               }, cjson.decode(body))
@@ -222,11 +222,11 @@ for _, strategy in helpers.each_strategy() do
                 name    = "schema violation",
                 message = unindent([[
                   schema violation
-                  (must set one of 'methods', 'hosts', 'paths', 'snis' when 'protocols' is 'https')
+                  (must set one of 'methods', 'headers', 'paths', 'snis' when 'protocols' is 'https')
                 ]], true, true),
                 fields  = {
                   ["@entity"] = {
-                    "must set one of 'methods', 'hosts', 'paths', 'snis' when 'protocols' is 'https'",
+                    "must set one of 'methods', 'headers', 'paths', 'snis' when 'protocols' is 'https'",
                   }
                 }
               }, cjson.decode(body))
@@ -570,7 +570,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(id, json.id)
 
@@ -598,7 +598,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.same(cjson.null, json.service)
               assert.equal(id, json.id)
@@ -629,7 +629,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(name, json.name)
 
@@ -658,7 +658,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(route.id, json.id)
 
@@ -690,7 +690,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(route.id, json.id)
               assert.equal(route.name, json.name)
@@ -732,11 +732,11 @@ for _, strategy in helpers.each_strategy() do
                   name    = "schema violation",
                   message = unindent([[
                   schema violation
-                  (must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http')
+                  (must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http')
                   ]], true, true),
                   fields  = {
                     ["@entity"] = {
-                      "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                      "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
                     }
                   }
                 }, cjson.decode(body))
@@ -807,7 +807,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(route.id, json.id)
 
@@ -840,7 +840,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(route.id, json.id)
 
@@ -893,7 +893,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/my-updated-path" }, json.paths)
-              assert.same({ "my-updated.tld" }, json.hosts)
+              assert.same({ host = { "my-updated.tld" } }, json.headers)
               assert.same(cjson.null, json.methods)
               assert.equal(route.id, json.id)
 
@@ -917,7 +917,7 @@ for _, strategy in helpers.each_strategy() do
             local body = assert.res_status(200, res)
             local json = cjson.decode(body)
             assert.same(cjson.null, json.paths)
-            assert.same({ "my-updated.tld" }, json.hosts)
+            assert.same({ host = { "my-updated.tld" } }, json.headers)
             assert.same(cjson.null, json.methods)
             assert.equal(route.id, json.id)
 
@@ -952,7 +952,7 @@ for _, strategy in helpers.each_strategy() do
               assert.same({}, json.methods)
             end
 
-            assert.same({ "my-updated.tld" }, json.hosts)
+            assert.same({ host = { "my-updated.tld" } }, json.headers)
             assert.equal(route.id, json.id)
           end)
 
@@ -981,7 +981,7 @@ for _, strategy in helpers.each_strategy() do
               local body = assert.res_status(200, res)
               local json = cjson.decode(body)
               assert.same({ "/updated-paths" }, json.paths)
-              assert.same(cjson.null, json.hosts)
+              assert.same(cjson.null, json.headers)
               assert.same(cjson.null, json.methods)
               assert.same(cjson.null, json.service)
               assert.equal(route.id, json.id)
