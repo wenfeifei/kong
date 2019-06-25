@@ -354,11 +354,11 @@ for _, strategy in helpers.each_strategy() do
             strategy = strategy,
             message  = unindent([[
               schema violation
-              (must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http')
+              (must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http')
             ]], true, true),
             fields   = {
               ["@entity"] = {
-                "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
               }
             },
 
@@ -378,11 +378,11 @@ for _, strategy in helpers.each_strategy() do
             strategy = strategy,
             message  = unindent([[
               schema violation
-              (must set one of 'methods', 'hosts', 'paths', 'snis' when 'protocols' is 'https')
+              (must set one of 'methods', 'headers', 'paths', 'snis' when 'protocols' is 'https')
             ]], true, true),
             fields   = {
               ["@entity"] = {
-                "must set one of 'methods', 'hosts', 'paths', 'snis' when 'protocols' is 'https'",
+                "must set one of 'methods', 'headers', 'paths', 'snis' when 'protocols' is 'https'",
               }
             },
 
@@ -508,7 +508,7 @@ for _, strategy in helpers.each_strategy() do
             protocols       = { "http" },
             name            = ngx.null,
             methods         = ngx.null,
-            hosts           = { "example.com" },
+            headers         = { host = { "example.com" } },
             paths           = ngx.null,
             snis            = ngx.null,
             sources         = ngx.null,
@@ -546,7 +546,7 @@ for _, strategy in helpers.each_strategy() do
             protocols       = { "http" },
             name            = ngx.null,
             methods         = ngx.null,
-            hosts           = { "example.com" },
+            headers           = { host = { "example.com" } },
             paths           = { "/example" },
             snis            = ngx.null,
             sources         = ngx.null,
@@ -583,7 +583,7 @@ for _, strategy in helpers.each_strategy() do
             protocols       = { "http" },
             name            = ngx.null,
             methods         = ngx.null,
-            hosts           = { "example.com" },
+            headers         = { host = { "example.com" } },
             paths           = { "/example" },
             snis            = ngx.null,
             sources         = ngx.null,
@@ -774,7 +774,7 @@ for _, strategy in helpers.each_strategy() do
             updated_at      = new_route.updated_at,
             protocols       = { "https" },
             methods         = route.methods,
-            hosts           = route.hosts,
+            headers         = route.headers,
             paths           = route.paths,
             regex_priority  = 5,
             strip_path      = route.strip_path,
@@ -806,7 +806,7 @@ for _, strategy in helpers.each_strategy() do
               created_at      = route.created_at,
               updated_at      = new_route.updated_at,
               protocols       = route.protocols,
-              hosts           = route.hosts,
+              headers         = route.headers,
               regex_priority  = route.regex_priority,
               strip_path      = route.strip_path,
               preserve_host   = route.preserve_host,
@@ -818,12 +818,12 @@ for _, strategy in helpers.each_strategy() do
 
           it("fails if all routing criteria would be null", function()
             local route = bp.routes:insert({
-              hosts   = { "example.com" },
+              headers = { host = { "example.com" } },
               methods = { "GET" },
             })
 
             local new_route, _, err_t = db.routes:update({ id = route.id }, {
-              hosts   = ngx.null,
+              headers = ngx.null,
               methods = ngx.null,
             })
             assert.is_nil(new_route)
@@ -833,11 +833,11 @@ for _, strategy in helpers.each_strategy() do
               strategy    = strategy,
               message  = unindent([[
                 schema violation
-                (must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http')
+                (must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http')
               ]], true, true),
               fields   = {
                 ["@entity"] = {
-                  "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                  "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
                 }
               },
             }, err_t)
@@ -845,14 +845,14 @@ for _, strategy in helpers.each_strategy() do
 
           it("fails if all routing criteria for http would be null", function()
             local route = bp.routes:insert({
-              hosts   = { "example.com" },
+              headers = {  host = { "example.com" } },
               methods = { "GET" },
               snis    = { "example.org" },
             })
 
             local new_route, _, err_t = db.routes:update({ id = route.id }, {
               protocols = { "http" },
-              hosts   = ngx.null,
+              headers   = ngx.null,
               methods = ngx.null,
             })
             assert.is_nil(new_route)
@@ -862,13 +862,13 @@ for _, strategy in helpers.each_strategy() do
               strategy    = strategy,
               message  = unindent([[
                 3 schema violations
-                (must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http';
+                (must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http';
                 'snis' can only be set when 'protocols' is 'https' or 'tls';
                 snis: length must be 0)
               ]], true, true),
               fields   = {
                 ["@entity"] = {
-                  "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                  "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
                   "'snis' can only be set when 'protocols' is 'https' or 'tls'",
                 },
                 ["snis"] = "length must be 0",
@@ -888,12 +888,12 @@ for _, strategy in helpers.each_strategy() do
             }, { nulls = true })
             assert.is_nil(err_t)
             assert.is_nil(err)
-            assert.same({ "example2.com" }, new_route.hosts)
+            assert.same({ host = { "example2.com" } }, new_route.headers)
             assert.same({ "GET" }, new_route.methods)
             assert.same(ngx.null, new_route.paths)
             assert.same(ngx.null, route.paths)
-            route.hosts     = nil
-            new_route.hosts = nil
+            route.headers     = nil
+            new_route.headers = nil
             assert(new_route.updated_at >= new_route.updated_at)
             route.updated_at = new_route.updated_at
             assert.same(route, new_route)
@@ -901,12 +901,12 @@ for _, strategy in helpers.each_strategy() do
 
           it("errors when unsetting a required field with ngx.null", function()
             local route = bp.routes:insert({
-              hosts   = { "example.com" },
+              headers   = { host = { "example.com" } },
               methods = { "GET" },
             })
 
             local new_route, _, err_t = db.routes:update({ id = route.id }, {
-              hosts   = ngx.null,
+              headers = ngx.null,
               methods = ngx.null,
             })
             assert.is_nil(new_route)
@@ -916,11 +916,11 @@ for _, strategy in helpers.each_strategy() do
               strategy    = strategy,
               message  = unindent([[
                 schema violation
-                (must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http')
+                (must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http')
               ]], true, true),
               fields   = {
                 ["@entity"] = {
-                  "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'",
+                  "must set one of 'methods', 'headers', 'paths' when 'protocols' is 'http'",
                 }
               },
             }, err_t)
@@ -1516,7 +1516,7 @@ for _, strategy in helpers.each_strategy() do
           protocols        = { "http" },
           name             = ngx.null,
           methods          = ngx.null,
-          hosts            = { "example.com" },
+          headers          = { host = { "example.com" } },
           paths            = ngx.null,
           snis             = ngx.null,
           sources          = ngx.null,

@@ -406,8 +406,8 @@ describe("declarative config: process_auto_fields", function()
               routes:
                 - paths:
                   - /path
-                - hosts:
-                  - example.com
+                - headers:
+                    host: ["example.com"]
                 - methods: ["GET", "POST"]
             - name: bar
               host: example.test
@@ -415,8 +415,8 @@ describe("declarative config: process_auto_fields", function()
               routes:
                 - paths:
                   - /path
-                  hosts:
-                  - example.com
+                  headers:
+                    host: ["example.com"]
                   methods: ["GET", "POST"]
           ]]))
           config = DeclarativeConfig:process_auto_fields(config, "select", false)
@@ -442,7 +442,7 @@ describe("declarative config: process_auto_fields", function()
                     https_redirect_status_code = 426,
                   },
                   {
-                    hosts = { "example.com" },
+                    headers = { host = { "example.com" } },
                     preserve_host = false,
                     regex_priority = 0,
                     strip_path = true,
@@ -471,7 +471,7 @@ describe("declarative config: process_auto_fields", function()
                 routes = {
                   {
                     paths = { "/path" },
-                    hosts = { "example.com" },
+                    headers = { host = { "example.com" } },
                     methods = { "GET", "POST" },
                     preserve_host = false,
                     regex_priority = 0,

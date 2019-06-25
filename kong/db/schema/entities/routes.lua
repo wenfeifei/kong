@@ -46,6 +46,7 @@ return {
   name         = "routes",
   primary_key  = { "id" },
   endpoint_key = "name",
+  dao          = "kong.db.dao.routes",
 
   fields = {
     { id             = typedefs.uuid, },
