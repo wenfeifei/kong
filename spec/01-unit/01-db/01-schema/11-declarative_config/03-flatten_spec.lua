@@ -169,7 +169,7 @@ describe("declarative config: flatten", function()
               tags = null,
               created_at = 1234567890,
               destinations = null,
-              hosts = null,
+              headers = null,
               id = "UUID",
               methods = null,
               name = "foo",
@@ -399,7 +399,7 @@ describe("declarative config: flatten", function()
               tags = null,
               created_at = 1234567890,
               destinations = null,
-              hosts = null,
+              headers = null,
               id = "UUID",
               methods = null,
               name = "r1",
@@ -662,7 +662,7 @@ describe("declarative config: flatten", function()
             routes = { {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = null,
+                headers = null,
                 id = "UUID",
                 methods = null,
                 name = null,
@@ -709,8 +709,8 @@ describe("declarative config: flatten", function()
                 - paths:
                   - /path
                   name: r1
-                - hosts:
-                  - example.com
+                - headers:
+                    host: ["example.com"]
                   name: r2
                 - methods: ["GET", "POST"]
                   name: r3
@@ -720,8 +720,8 @@ describe("declarative config: flatten", function()
               routes:
                 - paths:
                   - /path
-                  hosts:
-                  - example.com
+                  headers:
+                    host: ["example.com"]
                   methods: ["GET", "POST"]
                   name: r4
           ]]))
@@ -730,7 +730,7 @@ describe("declarative config: flatten", function()
             routes = { {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = null,
+                headers = null,
                 id = "UUID",
                 methods = null,
                 name = "r1",
@@ -750,7 +750,7 @@ describe("declarative config: flatten", function()
               }, {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = { "example.com" },
+                headers = { host = { "example.com" } },
                 id = "UUID",
                 methods = null,
                 name = "r2",
@@ -770,7 +770,7 @@ describe("declarative config: flatten", function()
               }, {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = null,
+                headers = null,
                 id = "UUID",
                 methods = { "GET", "POST" },
                 name = "r3",
@@ -790,7 +790,7 @@ describe("declarative config: flatten", function()
               }, {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = { "example.com" },
+                headers = { host = { "example.com" } },
                 id = "UUID",
                 methods = { "GET", "POST" },
                 name = "r4",
@@ -861,7 +861,7 @@ describe("declarative config: flatten", function()
                 tags = null,
                 created_at = 1234567890,
                 destinations = null,
-                hosts = null,
+                headers = null,
                 id = "UUID",
                 methods = { "GET" },
                 name = "foo",
@@ -1015,7 +1015,7 @@ describe("declarative config: flatten", function()
             routes = { {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = null,
+                headers = null,
                 id = "UUID",
                 methods = null,
                 name = "bar",
@@ -1035,7 +1035,7 @@ describe("declarative config: flatten", function()
               }, {
                 created_at = 1234567890,
                 destinations = null,
-                hosts = null,
+                headers = null,
                 id = "UUID",
                 methods = { "GET" },
                 name = "foo",
