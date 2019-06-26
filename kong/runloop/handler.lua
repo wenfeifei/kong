@@ -599,11 +599,11 @@ do
         end
 
         if service_subsystem == "http" then
-          if route.headers and type(route.hosts) == "table" then
+          if type(route.headers) == "table" then
             r.headers = utils.deep_copy(route.headers)
           end
 
-          if route.hosts and type(route.hosts) == "table" then
+          if type(route.hosts) == "table" then
             if not r.headers then
               r.headers = {}
             end
@@ -613,7 +613,7 @@ do
             end
 
             -- merge route.hosts and route.headers
-            for host in ipairs(route.hosts) do
+            for _, host in ipairs(route.hosts) do
               insert(r.headers.host, host)
             end
           end

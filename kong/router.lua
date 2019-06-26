@@ -1018,8 +1018,9 @@ function _M.new(routes)
   end
 
   local function reduce_req_headers(header_acc, header_k, header_v)
-    local header_kv, cache_key
+    local header_kv, cache_key, host_no_port
 
+    -- always add host headers to cache key
     if header_k == "host" then
       header_acc.raw_req_host = header_v
 
@@ -1029,24 +1030,34 @@ function _M.new(routes)
       -- strip port number if given because matching ignores ports
       local idx = find(header_v, ":", 2, true)
       if idx then
-        header_v = sub(header_v, 1, idx - 1)
+        host_no_port = sub(header_v, 1, idx - 1)
+      else
+        host_no_port = header_v
+      end
+
+      header_kv = header_k .. ":" .. host_no_port
+      if plain_indexes.headers[header_kv] then
+        ctx.req_headers[header_kv] = true
+        insert(ctx.req_headers, header_kv)
+
+      else
+        -- host key/value pair did not match any plain indexes.
+        -- need to check for wildcard hosts
+        header_acc.check_wildcard_hosts = true
+      end
+
+    else
+      -- non-host headers - only add to cache key if known key/value pair
+      header_kv = header_k .. ":" .. header_v
+      if plain_indexes.headers[header_kv] then
+        cache_key = header_kv
+        ctx.req_headers[header_kv] = true
+        insert(ctx.req_headers, header_kv)
       end
     end
 
-    header_kv = header_k .. ":" .. header_v
-
-    if not cache_key then
-      cache_key = header_kv
-    end
-
-    header_acc.cache_key = header_acc.cache_key .. ":" .. cache_key .. ":"
-
-    if plain_indexes.headers[header_kv] then
-      ctx.req_headers[header_kv] = true
-      insert(ctx.req_headers, header_kv)
-
-    elseif header_k == "host" then
-      header_acc.check_wildcard_hosts = true
+    if cache_key then
+      header_acc.cache_key = header_acc.cache_key .. ":" .. cache_key
     end
   end
 
@@ -1128,7 +1139,7 @@ function _M.new(routes)
     local cache_key = req_method .. ":" .. req_uri ..
                       ":" .. ctx.src_ip .. ":" .. ctx.src_port ..
                       ":" .. ctx.dst_ip .. ":" .. ctx.dst_port ..
-                      ":" .. ctx.sni .. ":" .. header_acc.cache_key
+                      ":" .. ctx.sni .. header_acc.cache_key
 
     do
       local match_t = cache:get(cache_key)
