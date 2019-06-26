@@ -37,7 +37,7 @@ describe("snis", function()
     end)
 
     it("rejects wrong wildcard placements", function()
-      local names = { "foo.*.com", "foo.*.wildcard.com" }
+      local names = { "foo.*.com", "foo.*.wildcard.com", "*foo.com", "www.foo*" }
 
       for _, name in ipairs(names) do
         local ok, err = validate({ name = name, certificate = certificate })
@@ -52,7 +52,7 @@ describe("snis", function()
       for _, name in ipairs(names) do
         local ok, err = validate({ name = name, certificate = certificate })
         assert.is_nil(ok)
-        assert.same({ name = "only one wildcard must be specified" }, err)
+        assert.same({ name = "only one wildcard may be specified" }, err)
       end
     end)
 

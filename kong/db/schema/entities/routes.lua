@@ -1,9 +1,22 @@
 local typedefs = require "kong.db.schema.typedefs"
 
 
-local function validate_host_with_wildcards(host)
-  local no_wildcards = string.gsub(host, "%*", "abc")
-  return typedefs.host.custom_validator(no_wildcards)
+local function validate_host_with_wildcards(headers)
+  if headers.host then
+    local errors = {}
+    for i = 1, #headers.host do
+      local ok, err = typedefs.wildcard_host.custom_validator(headers.host[i])
+      if not ok then
+        errors[#errors + 1] = err
+      end
+    end
+
+    if #errors > 0 then
+      return nil, errors
+    end
+  end
+
+  return true
 end
 
 
@@ -49,21 +62,22 @@ return {
                          elements = typedefs.http_method,
                        }, },
     { hosts          = { type = "array",
-                         elements = {
-                           type = "string",
-                           match_all = {
-                             {
-                               pattern = "^[^*]*%*?[^*]*$",
-                               err = "invalid wildcard: must have at most one wildcard",
-                             },
-                           },
-                           match_any = {
-                             patterns = { "^%*%.", "%.%*$", "^[^*]*$" },
-                             err = "invalid wildcard: must be placed at leftmost or rightmost label",
-                           },
-                           custom_validator = validate_host_with_wildcards,
-                         }
+                         elements = typedefs.wildcard_host,
                        }, },
+    { headers        = { type = "map",
+                         keys = { type = "string",
+                                  match_none = {
+                                    { pattern = "%u",
+                                      err = "invalid header key: must not contain uppercase characters"
+                                    },
+                                  },
+                                },
+                         values = { type = "array",
+                                    required = true,
+                                    elements = { type = "string" },
+                                  },
+                         custom_validator = validate_host_with_wildcards,
+                        }, },
     { paths          = { type = "array",
                          elements = typedefs.path {
                            custom_validator = validate_path_with_regexes,
@@ -114,10 +128,10 @@ return {
   entity_checks = {
     { conditional_at_least_one_of = { if_field = "protocols",
                                       if_match = { contains = "http" },
-                                      then_at_least_one_of = { "methods", "hosts", "paths" },
+                                      then_at_least_one_of = { "methods", "hosts", "paths", "headers" },
                                       then_err = "must set one of %s when 'protocols' is 'http'",
                                       else_match = { contains = "https" },
-                                      else_then_at_least_one_of = { "methods", "hosts", "paths", "snis" },
+                                      else_then_at_least_one_of = { "methods", "hosts", "paths", "snis", "headers" },
                                       else_then_err = "must set one of %s when 'protocols' is 'https'",
                                     }},
     { conditional_at_least_one_of = { if_field = "protocols",
@@ -143,6 +157,12 @@ return {
                       then_field = "methods",
                       then_match = { len_eq = 0 },
                       then_err = "cannot set 'methods' when 'protocols' is 'tcp' or 'tls'",
+                    }},
+    { conditional = { if_field = "protocols",
+                      if_match = { elements = { type = "string", one_of = { "tcp", "tls" }}},
+                      then_field = "headers",
+                      then_match = { len_eq = 0 },
+                      then_err = "cannot set 'headers' when 'protocols' is 'tcp' or 'tls'",
                     }},
     { conditional = { if_field = "protocols",
                       if_match = { elements = { type = "string", one_of = { "http", "https" }}},

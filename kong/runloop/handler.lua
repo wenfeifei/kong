@@ -31,6 +31,7 @@ local find         = string.find
 local lower        = string.lower
 local fmt          = string.format
 local sort         = table.sort
+local insert       = table.insert
 local ngx          = ngx
 local arg          = ngx.arg
 local var          = ngx.var
@@ -597,11 +598,25 @@ do
           service_subsystem = subsystem
         end
 
-        if service_subsystem == "http" and route.hosts then
-          -- TODO: headers should probably be moved to route
-          r.headers = {
-            host = route.hosts,
-          }
+        if service_subsystem == "http" then
+          if route.headers and type(route.hosts) == "table" then
+            r.headers = utils.deep_copy(route.headers)
+          end
+
+          if route.hosts and type(route.hosts) == "table" then
+            if not r.headers then
+              r.headers = {}
+            end
+
+            if not r.headers.host then
+              r.headers.host = {}
+            end
+
+            -- merge route.hosts and route.headers
+            for host in ipairs(route.hosts) do
+              insert(r.headers.host, host)
+            end
+          end
         end
 
         i = i + 1

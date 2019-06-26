@@ -403,8 +403,8 @@ describe("routes schema", function()
 
         local ok, err = Routes:validate(route)
         assert.falsy(ok)
-        assert.equal("invalid wildcard: must be placed at leftmost or " ..
-                     "rightmost label", err.hosts[1])
+        assert.equal("wildcard must be leftmost or rightmost character",
+                     err.hosts[1])
       end
     end)
 
@@ -422,7 +422,7 @@ describe("routes schema", function()
 
         local ok, err = Routes:validate(route)
         assert.falsy(ok)
-        assert.equal("invalid wildcard: must have at most one wildcard",
+        assert.equal("only one wildcard may be specified",
                      err.hosts[1])
       end
     end)
@@ -952,7 +952,7 @@ describe("routes schema", function()
     assert.falsy(ok)
     assert.same({
       ["@entity"] = {
-        "must set one of 'methods', 'hosts', 'paths' when 'protocols' is 'http'"
+        "must set one of 'methods', 'hosts', 'paths', 'headers' when 'protocols' is 'http'"
       }
     }, errs)
 
@@ -964,7 +964,7 @@ describe("routes schema", function()
     assert.falsy(ok)
     assert.same({
       ["@entity"] = {
-        "must set one of 'methods', 'hosts', 'paths', 'snis' when 'protocols' is 'https'"
+        "must set one of 'methods', 'hosts', 'paths', 'snis', 'headers' when 'protocols' is 'https'"
       }
     }, errs)
   end)

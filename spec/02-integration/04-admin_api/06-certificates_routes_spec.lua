@@ -1014,7 +1014,7 @@ describe("Admin API: #" .. strategy, function()
 
           local body = assert.res_status(400, res)
           local json = cjson.decode(body)
-          assert.equal("only one wildcard must be specified", json.fields.name)
+          assert.equal("only one wildcard may be specified", json.fields.name)
         end)
       end)
 
