@@ -21,6 +21,7 @@ describe("routes schema", function()
       protocols      = { "http" },
       methods        = { "GET", "POST" },
       hosts          = { "example.com" },
+      headers        = {location = {"us-east"} },
       paths          = { "/ovo" },
       regex_priority = 1,
       strip_path     = false,
@@ -78,13 +79,14 @@ describe("routes schema", function()
     assert.truthy(errs["methods"])
   end)
 
-  it("missing method, host, path & service produces error", function()
+  it("missing method, host, path, headers & service produces error", function()
     local s = { id = "a4fbd24e-6a52-4937-bd78-2536713072d2" }
     local tests = {
       { 1,    { protocols = { "http" },                                }, {} },
-      { true, { protocols = { "http" }, service = s, methods = {"GET"} }, {"hosts", "paths"} },
-      { true, { protocols = { "http" }, service = s, hosts = {"x.y"} },   {"methods", "paths"} },
-      { true, { protocols = { "http" }, service = s, paths = {"/foo"} },     {"methods", "hosts"} },
+      { true, { protocols = { "http" }, service = s, methods = {"GET"} }, {"hosts", "paths", "headers"} },
+      { true, { protocols = { "http" }, service = s, hosts = {"x.y"} },   {"methods", "paths", "headers"} },
+      { true, { protocols = { "http" }, service = s, paths = {"/foo"} },  {"methods", "hosts", "headers"} },
+      { true, { protocols = { "http" }, service = s, headers = { location = { "us-west" } } },  {"methods", "hosts", "paths"} },
     }
     for i, test in ipairs(tests) do
       test[2] = Routes:process_auto_fields(test[2], "insert")
@@ -140,6 +142,7 @@ describe("routes schema", function()
     assert.same({ "http" },    route.protocols)
     assert.same(ngx.null,      route.methods)
     assert.same(ngx.null,      route.hosts)
+    assert.same(ngx.null,      route.headers)
     assert.same({ "/foo" },    route.paths)
     assert.same(0,             route.regex_priority)
     assert.same(true,          route.strip_path)
@@ -490,6 +493,221 @@ describe("routes schema", function()
         assert.is_nil(err)
         assert.is_true(ok)
       end
+    end)
+  end)
+
+  describe("headers attribute", function()
+    -- refusals
+    it("key must be a string", function()
+      local route = {
+        headers = { false  },
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("expected a string", err.headers)
+    end)
+
+    it("key must be all lowercase characters", function()
+      local route = {
+        headers = { hOst = { "example.com" }  },
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("invalid header key: must not contain uppercase characters", err.headers)
+    end)
+
+    it("value must be an array", function()
+      local route = {
+        headers = { location = true },
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("expected an array", err.headers)
+    end)
+
+    it("values must be a string", function()
+      local route = {
+        headers = { location = { true } },
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("expected a string", err.headers[1])
+    end)
+
+    it("values must be non-empty string", function()
+      local route = {
+        headers = { location = { "" } },
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("length must be at least 1", err.headers[1])
+    end)
+
+    it("rejects invalid hostnames", function()
+      local invalid_hosts = {
+        "/example",
+        ".example",
+        "example.",
+        "example:",
+        "mock;bin",
+        "example.com/org",
+        "example-.org",
+        "example.org-",
+        "hello..example.com",
+        "hello-.example.com",
+      }
+
+      for i = 1, #invalid_hosts do
+        local route = {
+          headers = { host = { invalid_hosts[i] } },
+        }
+
+        local ok, err = Routes:validate(route)
+        assert.falsy(ok)
+        assert.equal("invalid value: " .. invalid_hosts[i], err.headers[1])
+      end
+    end)
+
+    it("rejects values with a valid port", function()
+      local route = {
+        headers = { host = { "example.com:80" } }
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("must not have a port", err.headers[1])
+    end)
+
+    it("rejects values with an invalid port", function()
+      local route = {
+        headers = { host = { "example.com:1000000" } }
+      }
+
+      local ok, err = Routes:validate(route)
+      assert.falsy(ok)
+      assert.equal("must not have a port", err.headers[1])
+    end)
+
+    it("rejects invalid wildcard placement", function()
+      local invalid_hosts = {
+        "*example.com",
+        "www.example*",
+        "mock*bin.com",
+      }
+
+      for i = 1, #invalid_hosts do
+        local route = {
+          headers = { host = { invalid_hosts[i] } },
+        }
+
+        local ok, err = Routes:validate(route)
+        assert.falsy(ok)
+        assert.equal("wildcard must be leftmost or rightmost character",
+                      err.headers[1])
+      end
+    end)
+
+    it("rejects host with too many wildcards", function()
+      local invalid_hosts = {
+        "*.example.*",
+        "**.example.com",
+        "*.example*.*",
+      }
+
+      for i = 1, #invalid_hosts do
+        local route = {
+          headers = { host = { invalid_hosts[i] } },
+        }
+
+        local ok, err = Routes:validate(route)
+        assert.falsy(ok)
+        assert.equal("only one wildcard may be specified",
+                      err.headers[1])
+      end
+    end)
+
+    -- acceptance
+    it("accepts valid hosts", function()
+      local valid_hosts = {
+        "hello.com",
+        "hello.fr",
+        "test.hello.com",
+        "1991.io",
+        "hello.COM",
+        "HELLO.com",
+        "123helloWORLD.com",
+        "example.123",
+        "example-api.com",
+        "hello.abcd",
+        "example_api.com",
+        "localhost",
+        -- below:
+        -- punycode examples from RFC3492;
+        -- https://tools.ietf.org/html/rfc3492#page-14
+        -- specifically the japanese ones as they mix
+        -- ascii with escaped characters
+        "3B-ww4c5e180e575a65lsy2b",
+        "-with-SUPER-MONKEYS-pc58ag80a8qai00g7n9n",
+        "Hello-Another-Way--fc4qua05auwb3674vfr0b",
+        "2-u9tlzr9756bt3uc0v",
+        "MajiKoi5-783gue6qz075azm5e",
+        "de-jg4avhby1noc0d",
+        "d9juau41awczczp",
+      }
+
+      for i = 1, #valid_hosts do
+        local route = Routes:process_auto_fields({
+          protocols = { "http" },
+          service = { id = a_valid_uuid },
+          methods = {},
+          paths = {},
+          headers = { host = { valid_hosts[i] } },
+        }, "insert")
+
+        local ok, err = Routes:validate(route)
+        assert.is_nil(err)
+        assert.is_true(ok)
+      end
+    end)
+
+    it("accepts hosts with valid wildcard", function()
+      local valid_hosts = {
+        "example.*",
+        "*.example.org",
+      }
+
+      for i = 1, #valid_hosts do
+        local route = Routes:process_auto_fields({
+          protocols = { "http" },
+          service = { id = a_valid_uuid },
+          methods = {},
+          paths = {},
+          headers = { host = { valid_hosts[i] } },
+        }, "insert")
+
+        local ok, err = Routes:validate(route)
+        assert.is_nil(err)
+        assert.is_true(ok)
+      end
+    end)
+
+    it("accepts arbitrary headers", function()
+      local route = Routes:process_auto_fields({
+        protocols = { "http" },
+        service = { id = a_valid_uuid },
+        methods = {},
+        paths = {},
+        headers = { location = {"us-east", "us-west"}, },
+      }, "insert")
+
+      local ok, err = Routes:validate(route)
+      assert.is_nil(err)
+      assert.is_true(ok)
     end)
   end)
 
