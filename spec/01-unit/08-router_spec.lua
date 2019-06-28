@@ -123,8 +123,8 @@ local use_case = {
     },
     headers = {
       location = {
-        "us-east",
-        "us-west",
+        "my-location-1",
+        "my-location-2",
       },
     },
   },
@@ -138,8 +138,8 @@ local use_case = {
     },
     headers = {
       location = {
-        "us-east",
-        "us-west",
+        "my-location-1",
+        "my-location-2",
       },
     },
   },
@@ -155,8 +155,8 @@ local use_case = {
     },
     headers = {
       location = {
-        "us-east",
-        "us-west",
+        "my-location-1",
+        "my-location-2",
       },
     },
   },
@@ -175,8 +175,8 @@ local use_case = {
     },
     headers = {
       location = {
-        "us-east",
-        "us-west",
+        "my-location-1",
+        "my-location-2",
       },
     },
   },
@@ -199,8 +199,8 @@ local use_case = {
         "domain-with-headers-2.org"
       },
       location = {
-        "us-east",
-        "us-west",
+        "my-location-1",
+        "my-location-2",
       },
     },
   },
@@ -340,7 +340,7 @@ describe("Router", function()
 
     it("[headers]", function()
       -- headers
-      local match_t = router.select("GET", "/", { location = "us-west" })
+      local match_t = router.select("GET", "/", { location = "my-location-2" })
       assert.truthy(match_t)
       assert.same(use_case[9].route, match_t.route)
       assert.same(match_t.matches.headers.location, use_case[9].headers.location[2])
@@ -351,7 +351,7 @@ describe("Router", function()
 
     it("[multiple header values]", function()
       -- headers
-      local match_t = router.select("GET", "/", { location = {"us-west", "north-pole"} })
+      local match_t = router.select("GET", "/", { location = {"my-location-2", "north-pole"} })
       assert.truthy(match_t)
       assert.same(use_case[9].route, match_t.route)
       assert.same(match_t.matches.headers.location, use_case[9].headers.location[2])
@@ -363,7 +363,7 @@ describe("Router", function()
     it("[headers + uri]", function()
       -- headers + uri
       local match_t = router.select("GET", "/headers-uri",
-                                    { location = "us-west" })
+                                    { location = "my-location-2" })
       assert.truthy(match_t)
       assert.same(use_case[10].route, match_t.route)
       assert.same(match_t.matches.headers.location, use_case[10].headers.location[2])
@@ -374,7 +374,7 @@ describe("Router", function()
 
     it("[headers + method]", function()
       -- headers + method
-      local match_t = router.select("POST", "/", { location = "us-west" })
+      local match_t = router.select("POST", "/", { location = "my-location-2" })
       assert.truthy(match_t)
       assert.same(use_case[11].route, match_t.route)
       assert.same(match_t.matches.headers.location, use_case[11].headers.location[2])
@@ -386,7 +386,7 @@ describe("Router", function()
     it("[host + uri + method]", function()
       -- header + uri + method
       local match_t = router.select("PUT", "/headers-uri-method",
-                                    { location = "us-west" })
+                                    { location = "my-location-2" })
       assert.truthy(match_t)
       assert.same(use_case[12].route, match_t.route)
       assert.same(match_t.matches.headers.location, use_case[12].headers.location[2])
@@ -398,7 +398,7 @@ describe("Router", function()
     it("[headers + host + uri + method]", function()
       -- host + header + uri + method
       local match_t = router.select("PUT", "/headers-host-uri-method",
-                                    { location = "us-west",
+                                    { location = "my-location-2",
                                       host = "domain-with-headers-1.org" })
       assert.truthy(match_t)
       assert.same(use_case[13].route, match_t.route)
@@ -1172,22 +1172,23 @@ describe("Router", function()
       end)
 
       it("invalid [headers]", function()
-        assert.is_nil(router.select("GET", "/", { location = "us-south" }))
+        assert.is_nil(router.select("GET", "/",
+                                    { location = "invalid-location" }))
       end)
 
       it("invalid headers in [headers + uri]", function()
         assert.is_nil(router.select("GET", "/headers-uri",
-                                    { location = "us-south" }))
+                                    { location = "invalid-location" }))
       end)
 
       it("invalid headers in [headers + uri + method]", function()
         assert.is_nil(router.select("PUT", "/headers-uri-method",
-                                    { location = "us-south" }))
+                                    { location = "invalid-location" }))
       end)
 
       it("invalid headers in [headers + host + uri + method]", function()
         assert.is_nil(router.select("PUT", "/headers-host-uri-method",
-                                    { location = "us-south",
+                                    { location = "invalid-location",
                                       host = "domain-with-headers-1.org" }))
       end)
     end)
@@ -1433,7 +1434,7 @@ describe("Router", function()
       assert.equal("/my-route-2", match_t.upstream_uri)
     end)
 
-    it("returns matched_host + matched_uri + matched_method", function()
+    it("returns matched_headers + matched_uri + matched_method", function()
       local use_case_routes = {
         {
           service   = service,
@@ -1443,6 +1444,7 @@ describe("Router", function()
           },
           headers   = {
             host    = { "host.com" },
+            location = { "my-location-1" },
           },
         },
         {
@@ -1452,6 +1454,7 @@ describe("Router", function()
           },
           headers   = {
             host    = { "host.com" },
+            location = { "my-location-1" },
           },
         },
         {
@@ -1459,7 +1462,8 @@ describe("Router", function()
           route     = {
           },
           headers   = {
-            host    = { "*.host.com" },
+            host    =  { "*.host.com" },
+            location = { "my-location-2" },
           },
         },
         {
@@ -1471,23 +1475,34 @@ describe("Router", function()
       }
 
       local router = assert(Router.new(use_case_routes))
-      local _ngx = mock_ngx("GET", "/my-route", { host = "host.com" })
+      local _ngx = mock_ngx("GET", "/my-route", {
+                              host = "host.com",
+                              location = "my-location-1"
+                            })
       router._set_ngx(_ngx)
       local match_t = router.exec()
       assert.same(use_case_routes[1].route, match_t.route)
       assert.equal("host.com", match_t.matches.headers.host)
+      assert.equal("my-location-1", match_t.matches.headers.location)
       assert.equal("/my-route", match_t.matches.uri)
       assert.equal("GET", match_t.matches.method)
 
-      _ngx = mock_ngx("GET", "/my-route/prefix/match", { host = "host.com" })
+      _ngx = mock_ngx("GET", "/my-route/prefix/match", {
+                        host = "host.com",
+                        location = "my-location-1"
+                      })
       router._set_ngx(_ngx)
       match_t = router.exec()
       assert.same(use_case_routes[1].route, match_t.route)
       assert.equal("host.com", match_t.matches.headers.host)
+      assert.equal("my-location-1", match_t.matches.headers.location)
       assert.equal("/my-route", match_t.matches.uri)
       assert.equal("GET", match_t.matches.method)
 
-      _ngx = mock_ngx("POST", "/my-route", { host = "host.com" })
+      _ngx = mock_ngx("POST", "/my-route", {
+                        host = "host.com",
+                        location = "my-location-1",
+                      })
       router._set_ngx(_ngx)
       match_t = router.exec()
       assert.same(use_case_routes[2].route, match_t.route)
@@ -1495,7 +1510,10 @@ describe("Router", function()
       assert.equal("/my-route", match_t.matches.uri)
       assert.is_nil(match_t.matches.method)
 
-      _ngx = mock_ngx("GET", "/", { host = "test.host.com" })
+      _ngx = mock_ngx("GET", "/", {
+                        host = "test.host.com",
+                        location = "my-location-2",
+                      })
       router._set_ngx(_ngx)
       match_t = router.exec()
       assert.same(use_case_routes[3].route, match_t.route)
