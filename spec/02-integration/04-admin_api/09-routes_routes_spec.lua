@@ -78,6 +78,31 @@ for _, strategy in helpers.each_strategy() do
           end
         end)
 
+        -- x-www-form-urlencoded has an issue with nested objects in headers
+        it("creates a route with with application/json (headers)", function()
+          local res = client:post("/routes", {
+            body = {
+              protocols = { "http" },
+              hosts     = { "my.route.com" },
+              headers   = { location = { "some_location" } },
+              service   = bp.services:insert(),
+            },
+            headers = { ["Content-Type"] = "application/json" }
+          })
+          local body = assert.res_status(201, res)
+          local json = cjson.decode(body)
+          assert.same({ "my.route.com" }, json.hosts)
+          assert.same({ "some_location" }, json.headers.location)
+          assert.is_number(json.created_at)
+          assert.is_number(json.regex_priority)
+          assert.is_string(json.id)
+          assert.equals(cjson.null, json.name)
+          assert.equals(cjson.null, json.paths)
+          assert.False(json.preserve_host)
+          assert.True(json.strip_path)
+        end)
+
+
         it_content_types("creates a route without service", function(content_type)
           return function()
             if content_type == "multipart/form-data" then

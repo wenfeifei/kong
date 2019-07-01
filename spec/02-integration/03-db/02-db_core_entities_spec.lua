@@ -527,6 +527,7 @@ for _, strategy in helpers.each_strategy() do
           local route, err, err_t = db.routes:insert({
             protocols       = { "http" },
             hosts           = { "example.com" },
+            headers         = { location = { "somewhere" } },
             paths           = { "/example" },
             regex_priority  = 3,
             strip_path      = true,
@@ -548,7 +549,7 @@ for _, strategy in helpers.each_strategy() do
             name            = ngx.null,
             methods         = ngx.null,
             hosts           = { "example.com" },
-            headers         = ngx.null,
+            headers         = { location = { "somewhere" } },
             paths           = { "/example" },
             snis            = ngx.null,
             sources         = ngx.null,
