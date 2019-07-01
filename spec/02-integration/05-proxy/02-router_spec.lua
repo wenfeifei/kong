@@ -968,6 +968,46 @@ for _, strategy in helpers.each_strategy() do
       end)
     end)
 
+    describe("[paths] + [headers]", function()
+      local routes
+
+      lazy_setup(function()
+        routes = insert_routes(bp, {
+          {
+            strip_path = true,
+            headers      = { location = { "some_location_1" } },
+            paths      = { "/root" },
+          },
+          {
+            strip_path = true,
+            headers      = { location = { "some_location_1" } },
+            paths      = { "/root/fixture" },
+          },
+        })
+      end)
+
+      lazy_teardown(function()
+        remove_routes(strategy, routes)
+      end)
+
+      it("prioritizes longer URIs", function()
+        local res = assert(proxy_client:send {
+          method  = "GET",
+          path    = "/root/fixture/get",
+          headers = {
+            ["location"]       = "some_location_1",
+            ["kong-debug"] = 1,
+          }
+        })
+
+        assert.res_status(200, res)
+
+        assert.equal(routes[2].id,           res.headers["kong-route-id"])
+        assert.equal(routes[2].service.id,   res.headers["kong-service-id"])
+        assert.equal(routes[2].service.name, res.headers["kong-service-name"])
+      end)
+    end)
+
     describe("slash handing", function()
       local checks = {
         -- upstream url    paths           request path    expected path           strip uri
