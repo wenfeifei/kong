@@ -1232,6 +1232,65 @@ describe("Router", function()
         end)
       end)
 
+      describe("single key [headers]", function()
+        local router
+        local target_location
+        local benchmark_use_cases = {}
+
+        lazy_setup(function()
+          for i = 1, 10^5 do
+            benchmark_use_cases[i] = {
+              service = service,
+              route   = {
+              },
+              headers = {
+                location  = { "somewhere-" .. i },
+              },
+            }
+          end
+
+          target_location =  "somewhere-" .. #benchmark_use_cases
+          router = assert(Router.new(benchmark_use_cases))
+        end)
+
+        it("takes < 1ms", function()
+          local match_t = router.select("GET", "/", { location = target_location })
+          assert.truthy(match_t)
+          assert.same(benchmark_use_cases[#benchmark_use_cases].route, match_t.route)
+        end)
+      end)
+
+      describe("10^4 keys [headers]", function()
+        local router
+        local target_val
+        local target_key
+        local benchmark_use_cases = {}
+
+        lazy_setup(function()
+          for i = 1, 10^4 do
+            benchmark_use_cases[i] = {
+              service = service,
+              route   = {
+              },
+              headers = {
+                ["key-" .. i]  = { "somewhere" },
+              },
+            }
+          end
+
+
+          target_key = "key-" .. #benchmark_use_cases
+          target_val =  "somewhere"
+          router = assert(Router.new(benchmark_use_cases))
+        end)
+
+        it("takes < 1ms", function()
+          local match_t = router.select("GET", "/", { [target_key] = target_val })
+          assert.truthy(match_t)
+          assert.same(benchmark_use_cases[#benchmark_use_cases].route, match_t.route)
+        end)
+      end)
+
       describe("[method + uri + host]", function()
         local router
         local target_uri
@@ -1281,10 +1340,65 @@ describe("Router", function()
         end)
       end)
 
+      describe("[method + uri + host + headers]", function()
+        local router
+        local target_uri
+        local target_domain
+        local target_location
+        local benchmark_use_cases = {}
+
+        lazy_setup(function()
+          local n = 10^5
+
+          for i = 1, n - 1 do
+            -- insert a lot of routes that don't match (missing methods)
+            -- but have conflicting paths and hosts (domain-<n>.org)
+
+            benchmark_use_cases[i] = {
+              service = service,
+              route   = {
+                paths = { "/my-route-" .. n },
+              },
+              headers = {
+                host  = { "domain-" .. n .. ".org" },
+                location = { "somewhere-" .. n },
+              },
+            }
+          end
+
+          -- insert our target route, which has the proper method as well
+          benchmark_use_cases[n] = {
+            service   = service,
+            route     = {
+              methods = { "POST" },
+              paths   = { "/my-route-" .. n },
+            },
+            headers   = {
+              host    = { "domain-" .. n .. ".org" },
+              location = { "somewhere-" .. n },
+            },
+          }
+
+          target_uri = "/my-route-" .. n
+          target_domain = "domain-" .. n .. ".org"
+          target_location = "somewhere-" .. n
+          router = assert(Router.new(benchmark_use_cases))
+        end)
+
+        it("takes < 1ms", function()
+          local match_t = router.select("POST", target_uri,
+                                        { host = target_domain, location = target_location })
+          assert.truthy(match_t)
+          assert.same(benchmark_use_cases[#benchmark_use_cases].route, match_t.route)
+        end)
+      end)
+
+
       describe("multiple routes of same category with identical values", function()
         local router
         local target_uri
         local target_domain
+        local target_location
         local benchmark_use_cases = {}
 
         lazy_setup(function()
@@ -1300,6 +1414,7 @@ describe("Router", function()
               },
               headers = {
                 host  = { "domain.org" },
+                location = { "somewhere" },
               },
             }
           end
@@ -1313,17 +1428,19 @@ describe("Router", function()
             },
             headers = {
               host  = { "domain.org" },
+              location = { "somewhere" },
             },
           }
 
           target_uri = "/my-real-route"
           target_domain = "domain.org"
+          target_location = "somewhere"
           router = assert(Router.new(benchmark_use_cases))
         end)
 
         it("takes < 1ms", function()
           local match_t = router.select("GET", target_uri,
-                                        { host = target_domain })
+                                        { host = target_domain, location = target_location })
           assert.truthy(match_t)
           assert.same(benchmark_use_cases[#benchmark_use_cases].route, match_t.route)
         end)
