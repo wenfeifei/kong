@@ -229,11 +229,12 @@ describe("Utils", function()
         local str = utils.encode_args {
           array = {"hello, world"},
           hash = { answer = 42 },
+          nested = { array = { "one", "two" } },
           hello = "world",
           falsy = false,
           ["multiple values"] = true
         }
-        assert.equal("array%5b1%5d=hello%2c%20world&falsy=false&hash%2eanswer=42&hello=world&multiple%20values=true", str)
+        assert.equal("array%5b1%5d=hello%2c%20world&falsy=false&hash%2eanswer=42&hello=world&multiple%20values=true&nested%2earray%5b1%5d=one&nested%2earray%5b2%5d=two", str)
       end)
       it("should not interpret the `%` character followed by 2 characters in the [0-9a-f] group as an hexadecimal value", function()
         local str = utils.encode_args {

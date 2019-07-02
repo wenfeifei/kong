@@ -270,6 +270,28 @@ do
     end
   end
 
+
+  -- Recursively URL escape and format key and value
+  -- Handles nested arrays and tables
+  local function recursive_encode_args(parent_key, value, raw, no_array_indexes, query)
+    for sub_key, sub_value in pairs(value) do
+      local key
+      if no_array_indexes then
+        key = parent_key
+      elseif type(sub_key) == "number" then
+        key = ("%s[%s]"):format(parent_key, tostring(sub_key))
+      else
+        key = ("%s.%s"):format(parent_key, tostring(sub_key))
+      end
+
+      if type(sub_value) == "table" then
+        recursive_encode_args(key, sub_value, raw, no_array_indexes, query)
+      else
+        query[#query+1] = encode_args_value(key, sub_value, raw)
+      end
+    end
+  end
+
   --- Encode a Lua table to a querystring
   -- Tries to mimic ngx_lua's `ngx.encode_args`, but has differences:
   -- * It percent-encodes querystring values.
@@ -297,24 +319,7 @@ do
     for _, key in ipairs(keys) do
       local value = args[key]
       if type(value) == "table" then
-        for sub_key, sub_value in pairs(value) do
-          if no_array_indexes then
-            query[#query+1] = encode_args_value(key, sub_value, raw)
-
-          else
-            if type(sub_key) == "number" then
-              query[#query+1] = encode_args_value(("%s[%s]")
-                                  :format(key, tostring(sub_key)), sub_value,
-                                          raw)
-
-            else
-              query[#query+1] = encode_args_value(("%s.%s")
-                                  :format(key, tostring(sub_key)), sub_value,
-                                          raw)
-
-            end
-          end
-        end
+        recursive_encode_args(key, value, raw, no_array_indexes, query)
       elseif value == ngx.null then
         query[#query+1] = encode_args_value(key, "")
       elseif  value ~= nil or raw then

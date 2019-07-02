@@ -61,6 +61,23 @@ for _, strategy in helpers.each_strategy() do
         assert.equals("bob",    params["names[2]"])
         assert.equals("casius", params["names[3]"])
       end)
+
+      it("encodes nested tables and arrays in a way Lapis-compatible way when using form-urlencoded content-type", function()
+        local r = proxy_client:get("/", {
+          headers = {
+            ["Content-type"] = "application/x-www-form-urlencoded",
+            host             = "mock_upstream",
+          },
+          body    = {
+            headers = { location = { "here", "there", "everywhere"} },
+          },
+        })
+        local json = assert.response(r).has.jsonbody()
+        local params = json.post_data.params
+        assert.equals("here", params["headers.location[1]"])
+        assert.equals("there", params["headers.location[2]"])
+        assert.equals("everywhere", params["headers.location[3]"])
+      end)
     end)
 
     describe("get_version()", function()
