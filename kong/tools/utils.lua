@@ -275,22 +275,22 @@ do
   -- Handles nested arrays and tables
   local function recursive_encode_args(parent_key, value, raw, no_array_indexes, query)
     for sub_key, sub_value in pairs(value) do
-      local key
       if no_array_indexes then
-        key = parent_key
+        sub_key = parent_key
       elseif type(sub_key) == "number" then
-        key = ("%s[%s]"):format(parent_key, tostring(sub_key))
+        sub_key = ("%s[%s]"):format(parent_key, tostring(sub_key))
       else
-        key = ("%s.%s"):format(parent_key, tostring(sub_key))
+        sub_key = ("%s.%s"):format(parent_key, tostring(sub_key))
       end
 
       if type(sub_value) == "table" then
-        recursive_encode_args(key, sub_value, raw, no_array_indexes, query)
+        recursive_encode_args(sub_key, sub_value, raw, no_array_indexes, query)
       else
-        query[#query+1] = encode_args_value(key, sub_value, raw)
+        query[#query+1] = encode_args_value(sub_key, sub_value, raw)
       end
     end
   end
+
 
   --- Encode a Lua table to a querystring
   -- Tries to mimic ngx_lua's `ngx.encode_args`, but has differences:
